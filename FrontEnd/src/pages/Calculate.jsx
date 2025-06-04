@@ -2,14 +2,25 @@ import React, { useState } from 'react';
 
 const Calculate = () => {
   const [target, setTarget] = useState(100);
+  const [tempTarget, setTempTarget] = useState(target);
   const [used, setUsed] = useState(0);
   const [purpose, setPurpose] = useState('');
   const [amount, setAmount] = useState('');
   const [usageHistory, setUsageHistory] = useState([]);
 
-  const handleTargetChange = (e) => {
-    const val = Math.max(0, Number(e.target.value));
-    setTarget(val);
+  const handleTempTargetChange = (e) => {
+    const val = e.target.value;
+    // Allow empty input or only digits
+    if (val === '' || /^[0-9]*$/.test(val)) {
+      setTempTarget(val);
+    }
+  };
+
+  const handleSetGoal = () => {
+    const val = Number(tempTarget);
+    if (val >= 0) {
+      setTarget(val);
+    }
   };
 
   const handleUsedChange = (e) => {
@@ -96,10 +107,17 @@ const Calculate = () => {
               id="targetInput"
               type="number"
               min={0}
-              value={target}
-              onChange={handleTargetChange}
+              value={tempTarget}
+              onChange={handleTempTargetChange}
               className="w-full rounded-lg px-4 py-3 bg-[#222] text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              placeholder="Enter your goal"
             />
+            <button
+              onClick={handleSetGoal}
+              className="mt-3 w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg transition"
+            >
+              Set Goal
+            </button>
           </div>
 
           <h2 className="text-white text-3xl font-bold mb-4 tracking-tight">Goal Progress</h2>

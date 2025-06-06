@@ -1,16 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
+
 
 const Calculate = () => {
-  const [target, setTarget] = useState(100);
-  const [tempTarget, setTempTarget] = useState(target);
   const [used, setUsed] = useState(0);
+  const [target, setTarget] = useState(100);
+  const [tempTarget, setTempTarget] = useState('100');
   const [purpose, setPurpose] = useState('');
   const [amount, setAmount] = useState('');
   const [usageHistory, setUsageHistory] = useState([]);
 
+  const hasFetched = useRef(false);
+
+  const getuser = () => {
+    const today = new Date().toLocaleDateString('en-CA');
+    fetch(`http://localhost:3000/dailyusage?date=${today}`)
+      .then(res => res.json())
+      .then(json => {
+        if (json.success) {
+          if (json.data && json.data.length > 0) {
+            const fetchedGoal = json.data[0].goal;
+            setTarget(fetchedGoal);
+            setTempTarget(String(fetchedGoal));
+          }
+          setUsed(json.totalAmount || 0);
+          setUsageHistory(json.data || []);
+        }
+      })
+      .catch(err => console.error("Fetch error:", err));
+  };
+
+ const OnSubmitHandler = async () => {
+  axios.defaults.withCredentials = true;
+
+  try {
+    const { data } = await axios.post(`http://localhost:3000/data`, {
+      purpose,
+      amount: Number(amount),
+      goal: target,
+    });
+    if (data.success) {
+      toast.success(data.message);
+      // Optionally clear inputs or update UI here
+    } else {
+      toast.error(data.message);
+    }
+  } catch (error) {
+    toast.error("Error submitting data");
+    console.error(error);
+  }
+};
+
+
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    getuser();
+  }, []);
+
   const handleTempTargetChange = (e) => {
     const val = e.target.value;
-    // Allow empty input or only digits
     if (val === '' || /^[0-9]*$/.test(val)) {
       setTempTarget(val);
     }
@@ -23,18 +74,42 @@ const Calculate = () => {
     }
   };
 
-  const handleUsedChange = (e) => {
-    const val = Math.max(0, Number(e.target.value));
-    setUsed(val);
+  const handleAddUsage = () => {
+    const numericAmount = Number(amount);
+    if (numericAmount > 0 && purpose.trim()) {
+      const newEntry = {
+        id: Date.now(),
+        purpose,
+        amount: numericAmount,
+        goal: target,
+        time: new Date().toLocaleTimeString()
+      };
+      setUsageHistory((prev) => [...prev, newEntry]);
+      setUsed((prev) => prev + numericAmount);
+      setPurpose('');
+      setAmount('');
+    }
   };
 
-  const handlePurposeChange = (e) => {
-    setPurpose(e.target.value);
-  };
+ const handleRemoveUsage = async (_id, amt) => {
+  try {
+    const res = await axios.delete('http://localhost:3000/delete-usage', {
+      data: { id: _id },
+    });
 
-  const handleAmountChange = (e) => {
-    setAmount(e.target.value);
-  };
+    if (res.data.success) {
+      setUsageHistory((prev) => prev.filter((entry) => entry._id !== _id));
+      setUsed((prev) => Math.max(0, prev - amt));
+      toast.success("Deleted successfully");
+    } else {
+      toast.error(res.data.message || "Failed to delete.");
+    }
+  } catch (err) {
+    console.error("Delete error:", err);
+    toast.error("Server error during delete");
+  }
+};
+
 
   const percentage = target === 0 ? 0 : (used / target) * 100;
 
@@ -49,46 +124,17 @@ const Calculate = () => {
   const progressColor = getGradientColor(percentage);
 
   const getMessageAndColor = (percent) => {
-    if (percent === 0) {
-      return { message: 'No water used yet.', color: 'text-gray-400' };
-    }
-    if (percent <= 30) {
-      return { message: `Just started! You’ve used ${Math.round(percent)}% of your goal.`, color: 'text-blue-400' };
-    }
-    if (percent <= 50) {
-      return { message: `Making progress! Used ${Math.round(percent)}% of your water goal.`, color: 'text-green-400' };
-    }
-    if (percent <= 70) {
-      return { message: `Over halfway there! Used ${Math.round(percent)}%.`, color: 'text-yellow-400' };
-    }
-    if (percent <= 85) {
-      return { message: `Getting close! Used ${Math.round(percent)}%.`, color: 'text-orange-400' };
-    }
-    if (percent < 100) {
-      return { message: `⚠️ Warning! Close to your limit at ${Math.round(percent)}%.`, color: 'text-red-500' };
-    }
-    if (percent === 100) {
-      return { message: `🚨 Limit reached! Used exactly ${Math.round(percent)}%.`, color: 'text-red-600 font-bold' };
-    }
-    return { message: `🚨 Limit exceeded! Used ${Math.round(percent)}% of your goal!`, color: 'text-red-700 font-bold' };
+    if (percent === 0) return { message: 'No water used yet.', color: 'text-gray-400' };
+    if (percent <= 30) return { message: `Just started! You’ve used ${Math.round(percent)}% of your goal.`, color: 'text-blue-400' };
+    if (percent <= 50) return { message: `Making progress! Used ${Math.round(percent)}%.`, color: 'text-green-400' };
+    if (percent <= 70) return { message: `Over halfway there! Used ${Math.round(percent)}%.`, color: 'text-yellow-400' };
+    if (percent <= 85) return { message: `Getting close! Used ${Math.round(percent)}%.`, color: 'text-orange-400' };
+    if (percent < 100) return { message: `⚠️ Warning! Close to your limit at ${Math.round(percent)}%.`, color: 'text-red-500' };
+    if (percent === 100) return { message: `🚨 Limit reached! Used exactly ${Math.round(percent)}%.`, color: 'text-red-600 font-bold' };
+    return { message: `🚨 Limit exceeded! Used ${Math.round(percent)}%!`, color: 'text-red-700 font-bold' };
   };
 
   const { message, color } = getMessageAndColor(percentage);
-
-  const handleAddUsage = () => {
-    const numericAmount = Number(amount);
-    if (numericAmount > 0 && purpose.trim()) {
-      setUsed((prev) => prev + numericAmount);
-      setUsageHistory((prev) => [...prev, { id: Date.now(), purpose, amount: numericAmount }]);
-      setPurpose('');
-      setAmount('');
-    }
-  };
-
-  const handleRemoveUsage = (id, amt) => {
-    setUsageHistory((prev) => prev.filter((entry) => entry.id !== id));
-    setUsed((prev) => Math.max(0, prev - amt));
-  };
 
   return (
     <div className="max-w-6xl mx-auto mt-10 p-6 text-white font-sans">
@@ -113,7 +159,10 @@ const Calculate = () => {
               placeholder="Enter your goal"
             />
             <button
-              onClick={handleSetGoal}
+              onClick={() => {
+                handleSetGoal();
+                toast.success("🎯 Your goal is set!");
+              }}
               className="mt-3 w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg transition"
             >
               Set Goal
@@ -155,7 +204,7 @@ const Calculate = () => {
               id="purposeInput"
               type="text"
               value={purpose}
-              onChange={handlePurposeChange}
+              onChange={(e) => setPurpose(e.target.value)}
               placeholder="e.g., Drinking, Bathing"
               className="w-full rounded-lg px-4 py-3 bg-[#222] text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
             />
@@ -170,44 +219,59 @@ const Calculate = () => {
               type="number"
               min={0}
               value={amount}
-              onChange={handleAmountChange}
+              onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g., 5"
               className="w-full rounded-lg px-4 py-3 bg-[#222] text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              required
             />
           </div>
 
           <button
-            onClick={handleAddUsage}
+            onClick={async () => {
+              if (!purpose.trim() || !amount) {
+                toast.error("🚫 Please enter all the details");
+                return;
+              }
+              handleAddUsage();
+              await OnSubmitHandler();
+            }}
             className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg transition"
           >
             ➕ Add Water Usage
           </button>
         </div>
+        
       </div>
 
       <div className="mt-10 bg-[#121212] p-6 rounded-xl shadow-lg">
-        <h2 className="text-3xl font-extrabold mb-4 tracking-tight">📋Today's Usage History</h2>
+        <h2 className="text-3xl font-extrabold mb-4 tracking-tight">📋 Today's Usage History</h2>
         {usageHistory.length === 0 ? (
           <p className="text-gray-400">No usage entries yet.</p>
         ) : (
           <ul className="space-y-4">
-            {usageHistory.map((entry) => (
-              <li key={entry.id} className="flex justify-between items-center bg-[#1e1e1e] px-4 py-3 rounded-lg">
+            {usageHistory.map((entry, index) => (
+              <li
+                key={`${entry.id}-${index}`}
+                className="flex justify-between items-center bg-[#1e1e1e] px-4 py-3 rounded-lg"
+              >
                 <div>
                   <p className="font-semibold">{entry.purpose}</p>
                   <p className="text-gray-400 text-sm">{entry.amount} liters</p>
                 </div>
                 <button
-                  onClick={() => handleRemoveUsage(entry.id, entry.amount)}
-                  className="text-red-500 hover:text-red-700 font-bold"
-                >
-                  ❌ Remove
-                </button>
+  onClick={() => handleRemoveUsage(entry._id, entry.amount)}
+  className="text-red-500 hover:text-red-700 font-bold"
+>
+  ❌ Remove
+</button>
+
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      <ToastContainer position="top-center" autoClose={3000} />
     </div>
   );
 };

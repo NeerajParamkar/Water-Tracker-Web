@@ -1,181 +1,82 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
+import axios from 'axios';
 
-// Sample hierarchical water usage data for a year
-const yearData = {
-  2025: {
-    January: {
-      weeks: {
-        '1-7': { days: { '2025-01-01': 4000, '2025-01-02': 35, '2025-01-03': 30, '2025-01-04': 25, '2025-01-05': 20, '2025-01-06': 50, '2025-01-07': 45 } },
-        '8-14': { days: { '2025-01-08': 60, '2025-01-09': 55, '2025-01-10': 70, '2025-01-11': 65, '2025-01-12': 60, '2025-01-13': 55, '2025-01-14': 50 } },
-        '15-21': { days: { '2025-01-15': 30, '2025-01-16': 25, '2025-01-17': 40, '2025-01-18': 35, '2025-01-19': 45, '2025-01-20': 50, '2025-01-21': 55 } },
-        '22-28': { days: { '2025-01-22': 65, '2025-01-23': 70, '2025-01-24': 75, '2025-01-25': 80, '2025-01-26': 60, '2025-01-27': 55, '2025-01-28': 50 } },
-        '29-31': { days: { '2025-01-29': 45, '2025-01-30': 40, '2025-01-31': 35 } },
-      },
-    },
-    February: {
-      weeks: {
-        '1-7': { days: { '2025-02-01': 42, '2025-02-02': 38, '2025-02-03': 35, '2025-02-04': 40, '2025-02-05': 37, '2025-02-06': 32, '2025-02-07': 30 } },
-        '8-14': { days: { '2025-02-08': 45, '2025-02-09': 50, '2025-02-10': 48, '2025-02-11': 47, '2025-02-12': 44, '2025-02-13': 46, '2025-02-14': 49 } },
-        '15-21': { days: { '2025-02-15': 40, '2025-02-16': 38, '2025-02-17': 42, '2025-02-18': 45, '2025-02-19': 43, '2025-02-20': 41, '2025-02-21': 40 } },
-        '22-28': { days: { '2025-02-22': 50, '2025-02-23': 48, '2025-02-24': 46, '2025-02-25': 44, '2025-02-26': 42, '2025-02-27': 40, '2025-02-28': 38 } },
-      },
-    },
-    March: {
-      weeks: {
-        '1-7': { days: { '2025-03-01': 50, '2025-03-02': 48, '2025-03-03': 45, '2025-03-04': 47, '2025-03-05': 49, '2025-03-06': 52, '2025-03-07': 50 } },
-        '8-14': { days: { '2025-03-08': 55, '2025-03-09': 57, '2025-03-10': 60, '2025-03-11': 58, '2025-03-12': 62, '2025-03-13': 65, '2025-03-14': 63 } },
-        '15-21': { days: { '2025-03-15': 55, '2025-03-16': 53, '2025-03-17': 50, '2025-03-18': 52, '2025-03-19': 54, '2025-03-20': 56, '2025-03-21': 58 } },
-        '22-28': { days: { '2025-03-22': 60, '2025-03-23': 62, '2025-03-24': 65, '2025-03-25': 63, '2025-03-26': 60, '2025-03-27': 58, '2025-03-28': 55 } },
-        '29-31': { days: { '2025-03-29': 50, '2025-03-30': 48, '2025-03-31': 45 } },
-      },
-    },
-    April: {
-      weeks: {
-        '1-7': { days: { '2025-04-01': 55, '2025-04-02': 52, '2025-04-03': 50, '2025-04-04': 48, '2025-04-05': 46, '2025-04-06': 44, '2025-04-07': 42 } },
-        '8-14': { days: { '2025-04-08': 45, '2025-04-09': 47, '2025-04-10': 50, '2025-04-11': 52, '2025-04-12': 54, '2025-04-13': 56, '2025-04-14': 58 } },
-        '15-21': { days: { '2025-04-15': 60, '2025-04-16': 62, '2025-04-17': 64, '2025-04-18': 66, '2025-04-19': 68, '2025-04-20': 70, '2025-04-21': 72 } },
-        '22-28': { days: { '2025-04-22': 74, '2025-04-23': 76, '2025-04-24': 78, '2025-04-25': 80, '2025-04-26': 82, '2025-04-27': 84, '2025-04-28': 86 } },
-        '29-30': { days: { '2025-04-29': 88, '2025-04-30': 90 } },
-      },
-    },
-    May: {
-      weeks: {
-        '1-7': { days: { '2025-05-01': 70, '2025-05-02': 72, '2025-05-03': 74, '2025-05-04': 76, '2025-05-05': 78, '2025-05-06': 80, '2025-05-07': 82 } },
-        '8-14': { days: { '2025-05-08': 84, '2025-05-09': 86, '2025-05-10': 88, '2025-05-11': 90, '2025-05-12': 92, '2025-05-13': 94, '2025-05-14': 96 } },
-        '15-21': { days: { '2025-05-15': 98, '2025-05-16': 100, '2025-05-17': 102, '2025-05-18': 104, '2025-05-19': 106, '2025-05-20': 108, '2025-05-21': 110 } },
-        '22-28': { days: { '2025-05-22': 112, '2025-05-23': 114, '2025-05-24': 116, '2025-05-25': 118, '2025-05-26': 120, '2025-05-27': 122, '2025-05-28': 124 } },
-        '29-31': { days: { '2025-05-29': 126, '2025-05-30': 128, '2025-05-31': 130 } },
-      },
-    },
-    June: {
-      weeks: {
-        '1-7': { days: { '2025-06-01': 90, '2025-06-02': 92, '2025-06-03': 94, '2025-06-04': 96, '2025-06-05': 98, '2025-06-06': 100, '2025-06-07': 102 } },
-        '8-14': { days: { '2025-06-08': 104, '2025-06-09': 106, '2025-06-10': 108, '2025-06-11': 110, '2025-06-12': 112, '2025-06-13': 114, '2025-06-14': 116 } },
-        '15-21': { days: { '2025-06-15': 118, '2025-06-16': 120, '2025-06-17': 122, '2025-06-18': 124, '2025-06-19': 126, '2025-06-20': 128, '2025-06-21': 130 } },
-        '22-28': { days: { '2025-06-22': 132, '2025-06-23': 134, '2025-06-24': 136, '2025-06-25': 138, '2025-06-26': 140, '2025-06-27': 142, '2025-06-28': 144 } },
-        '29-30': { days: { '2025-06-29': 146, '2025-06-30': 148 } },
-      },
-    },
-    July: {
-      weeks: {
-        '1-7': { days: { '2025-07-01': 110, '2025-07-02': 112, '2025-07-03': 114, '2025-07-04': 116, '2025-07-05': 118, '2025-07-06': 120, '2025-07-07': 122 } },
-        '8-14': { days: { '2025-07-08': 124, '2025-07-09': 126, '2025-07-10': 128, '2025-07-11': 130, '2025-07-12': 132, '2025-07-13': 134, '2025-07-14': 136 } },
-        '15-21': { days: { '2025-07-15': 138, '2025-07-16': 140, '2025-07-17': 142, '2025-07-18': 144, '2025-07-19': 146, '2025-07-20': 148, '2025-07-21': 150 } },
-        '22-28': { days: { '2025-07-22': 152, '2025-07-23': 154, '2025-07-24': 156, '2025-07-25': 158, '2025-07-26': 160, '2025-07-27': 162, '2025-07-28': 164 } },
-        '29-31': { days: { '2025-07-29': 166, '2025-07-30': 168, '2025-07-31': 170 } },
-      },
-    },
-    August: {
-      weeks: {
-        '1-7': { days: { '2025-08-01': 130, '2025-08-02': 132, '2025-08-03': 134, '2025-08-04': 136, '2025-08-05': 138, '2025-08-06': 140, '2025-08-07': 142 } },
-        '8-14': { days: { '2025-08-08': 144, '2025-08-09': 146, '2025-08-10': 148, '2025-08-11': 150, '2025-08-12': 152, '2025-08-13': 154, '2025-08-14': 156 } },
-        '15-21': { days: { '2025-08-15': 158, '2025-08-16': 160, '2025-08-17': 162, '2025-08-18': 164, '2025-08-19': 166, '2025-08-20': 168, '2025-08-21': 170 } },
-        '22-28': { days: { '2025-08-22': 172, '2025-08-23': 174, '2025-08-24': 176, '2025-08-25': 178, '2025-08-26': 180, '2025-08-27': 182, '2025-08-28': 184 } },
-        '29-31': { days: { '2025-08-29': 186, '2025-08-30': 188, '2025-08-31': 190 } },
-      },
-    },
-    September: {
-      weeks: {
-        '1-7': { days: { '2025-09-01': 150, '2025-09-02': 152, '2025-09-03': 154, '2025-09-04': 156, '2025-09-05': 158, '2025-09-06': 160, '2025-09-07': 162 } },
-        '8-14': { days: { '2025-09-08': 164, '2025-09-09': 166, '2025-09-10': 168, '2025-09-11': 170, '2025-09-12': 172, '2025-09-13': 174, '2025-09-14': 176 } },
-        '15-21': { days: { '2025-09-15': 178, '2025-09-16': 180, '2025-09-17': 182, '2025-09-18': 184, '2025-09-19': 186, '2025-09-20': 188, '2025-09-21': 190 } },
-        '22-28': { days: { '2025-09-22': 192, '2025-09-23': 194, '2025-09-24': 196, '2025-09-25': 198, '2025-09-26': 200, '2025-09-27': 202, '2025-09-28': 204 } },
-        '29-30': { days: { '2025-09-29': 206, '2025-09-30': 208 } },
-      },
-    },
-    October: {
-      weeks: {
-        '1-7': { days: { '2025-10-01': 170, '2025-10-02': 172, '2025-10-03': 174, '2025-10-04': 176, '2025-10-05': 178, '2025-10-06': 180, '2025-10-07': 182 } },
-        '8-14': { days: { '2025-10-08': 184, '2025-10-09': 186, '2025-10-10': 188, '2025-10-11': 190, '2025-10-12': 192, '2025-10-13': 194, '2025-10-14': 196 } },
-        '15-21': { days: { '2025-10-15': 198, '2025-10-16': 200, '2025-10-17': 202, '2025-10-18': 204, '2025-10-19': 206, '2025-10-20': 208, '2025-10-21': 210 } },
-        '22-28': { days: { '2025-10-22': 212, '2025-10-23': 214, '2025-10-24': 216, '2025-10-25': 218, '2025-10-26': 220, '2025-10-27': 222, '2025-10-28': 224 } },
-        '29-31': { days: { '2025-10-29': 226, '2025-10-30': 228, '2025-10-31': 230 } },
-      },
-    },
-    November: {
-      weeks: {
-        '1-7': { days: { '2025-11-01': 190, '2025-11-02': 192, '2025-11-03': 194, '2025-11-04': 196, '2025-11-05': 198, '2025-11-06': 200, '2025-11-07': 202 } },
-        '8-14': { days: { '2025-11-08': 204, '2025-11-09': 206, '2025-11-10': 208, '2025-11-11': 210, '2025-11-12': 212, '2025-11-13': 214, '2025-11-14': 216 } },
-        '15-21': { days: { '2025-11-15': 218, '2025-11-16': 220, '2025-11-17': 222, '2025-11-18': 224, '2025-11-19': 226, '2025-11-20': 228, '2025-11-21': 230 } },
-        '22-28': { days: { '2025-11-22': 232, '2025-11-23': 234, '2025-11-24': 236, '2025-11-25': 238, '2025-11-26': 240, '2025-11-27': 242, '2025-11-28': 244 } },
-        '29-30': { days: { '2025-11-29': 246, '2025-11-30': 248 } },
-      },
-    },
-    December: {
-      weeks: {
-        '1-7': { days: { '2025-12-01': 210, '2025-12-02': 212, '2025-12-03': 214, '2025-12-04': 216, '2025-12-05': 218, '2025-12-06': 220, '2025-12-07': 222 } },
-        '8-14': { days: { '2025-12-08': 224, '2025-12-09': 226, '2025-12-10': 228, '2025-12-11': 230, '2025-12-12': 232, '2025-12-13': 234, '2025-12-14': 236 } },
-        '15-21': { days: { '2025-12-15': 238, '2025-12-16': 240, '2025-12-17': 242, '2025-12-18': 244, '2025-12-19': 246, '2025-12-20': 248, '2025-12-21': 250 } },
-        '22-28': { days: { '2025-12-22': 252, '2025-12-23': 254, '2025-12-24': 256, '2025-12-25': 258, '2025-12-26': 260, '2025-12-27': 262, '2025-12-28': 264 } },
-        '29-31': { days: { '2025-12-29': 266, '2025-12-30': 268, '2025-12-31': 270 } },
-      },
-    },
-  },
-};
-
-// Helper to aggregate water usage from an object of values
 const sumValues = (obj) => Object.values(obj).reduce((a, b) => a + b, 0);
 
 const Dashboard = () => {
-  // Track drill-down level: year -> month -> week -> day -> detail
+  const [data, setData] = useState({});
   const [level, setLevel] = useState('year');
-  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedYear, setSelectedYear] = useState('2025');
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [chartData, setChartData] = useState([]);
+  const [title, setTitle] = useState('');
 
-  // Data for charts depends on level
-  let chartData = [];
-  let title = '';
+  useEffect(() => {
+    axios.get('http://localhost:3000/api/water-usage-hierarchy')
+      .then(res => {
+        if (res.data.success) {
+          setData(res.data.data);
+        }
+      })
+      .catch(err => console.error('Error fetching data:', err));
+  }, []);
 
-  if (level === 'year') {
-    title = `Water Usage in ${selectedYear} (Months)`;
-    const months = yearData[selectedYear];
-    chartData = Object.entries(months).map(([month, data]) => {
-      // sum all weeks' days water usage
-      const monthTotal = sumValues(
-        Object.values(data.weeks).reduce((acc, week) => {
-          return { ...acc, ...week.days };
-        }, {})
-      );
-      return { name: month, waterUsed: monthTotal };
-    });
-  } else if (level === 'month') {
-    title = `Water Usage in ${selectedMonth}, ${selectedYear} (Weeks)`;
-    const weeks = yearData[selectedYear][selectedMonth].weeks;
-    chartData = Object.entries(weeks).map(([week, data]) => {
-      const weekTotal = sumValues(data.days);
-      return { name: `Week ${week}`, waterUsed: weekTotal };
-    });
-  } else if (level === 'week') {
-    title = `Water Usage in ${selectedWeek} of ${selectedMonth}, ${selectedYear} (Days)`;
-    const days = yearData[selectedYear][selectedMonth].weeks[selectedWeek].days;
-    chartData = Object.entries(days).map(([day, usage]) => ({
-      name: day,
-      waterUsed: usage,
-    }));
-  }
+  useEffect(() => {
+    if (!data[selectedYear]) return;
 
-  // Handle click on a bar to drill down
-  const handleBarClick = (data) => {
     if (level === 'year') {
-      setSelectedMonth(data.name);
+      setTitle(`Water Usage in ${selectedYear} (Months)`);
+      const months = data[selectedYear];
+      const result = Object.entries(months).map(([month, monthData]) => {
+        const total = sumValues(
+          Object.values(monthData.weeks).reduce((acc, week) => ({ ...acc, ...week.days }), {})
+        );
+        return { name: month, waterUsed: total };
+      });
+      setChartData(result);
+    } else if (level === 'month') {
+      setTitle(`Water Usage in ${selectedMonth}, ${selectedYear} (Weeks)`);
+      const weeks = data[selectedYear][selectedMonth].weeks;
+      const result = Object.entries(weeks).map(([week, weekData]) => {
+        const total = sumValues(weekData.days);
+        return { name: `Week ${week}`, waterUsed: total };
+      });
+      setChartData(result);
+    } else if (level === 'week') {
+      setTitle(`Water Usage in Week ${selectedWeek} of ${selectedMonth}, ${selectedYear} (Days)`);
+      const days = data[selectedYear][selectedMonth].weeks[selectedWeek].days;
+      const result = Object.entries(days).map(([day, usage]) => {
+        const fullDate = new Date(`${selectedYear}-${selectedMonth}-01`);
+        fullDate.setDate(parseInt(day));
+        return {
+          name: fullDate.toDateString(),
+          waterUsed: usage,
+        };
+      });
+      setChartData(result);
+    }
+  }, [data, level, selectedYear, selectedMonth, selectedWeek]);
+
+  const handleBarClick = (entry) => {
+    const { name } = entry;
+    if (level === 'year') {
+      setSelectedMonth(name);
       setLevel('month');
     } else if (level === 'month') {
-      // data.name is like "Week 1-7"
-      const week = data.name.replace('Week ', '');
+      const week = name.replace('Week ', '');
       setSelectedWeek(week);
       setLevel('week');
     } else if (level === 'week') {
-      setSelectedDay(data.name);
+      setSelectedDay(name);
       setLevel('day');
     }
   };
 
-  // Handle going back up
   const handleBack = () => {
     if (level === 'day') setLevel('week');
     else if (level === 'week') setLevel('month');
@@ -185,7 +86,7 @@ const Dashboard = () => {
   return (
     <div className="mt-10 max-w-6xl mx-auto p-6 text-white bg-gray-900 rounded-lg shadow-lg font-sans">
       <h1 className="text-3xl font-bold mb-6 text-cyan-400">{title}</h1>
-      {(level !== 'year') && (
+      {level !== 'year' && (
         <button
           onClick={handleBack}
           className="mb-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded transition"
@@ -219,11 +120,15 @@ const Dashboard = () => {
         </ResponsiveContainer>
       )}
 
-      {level === 'day' && (
+      {level === 'day' && selectedDay && (
         <div className="bg-[#111] p-6 rounded-lg shadow-inner">
           <h2 className="text-xl mb-4 text-cyan-300">Water Usage Details for {selectedDay}</h2>
           <p className="text-lg">
-            Usage: <span className="font-bold text-cyan-400">{yearData[selectedYear][selectedMonth].weeks[selectedWeek].days[selectedDay]} liters</span>
+            Usage: <span className="font-bold text-cyan-400">{
+              data[selectedYear][selectedMonth].weeks[selectedWeek].days[
+                new Date(selectedDay).getDate()
+              ]
+            } liters</span>
           </p>
           <button
             onClick={handleBack}
